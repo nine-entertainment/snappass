@@ -176,7 +176,7 @@ def handle_password():
 def preview_password(password_key):
     password_key = url_unquote_plus(password_key)
     if not password_exists(password_key):
-        abort(404)
+        return render_template('expired.html')
 
     return render_template('preview.html')
 
