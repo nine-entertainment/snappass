@@ -2,15 +2,11 @@
 SnapPass
 ========
 
-|pypi| |build|
+|pypi|
 
 .. |pypi| image:: https://img.shields.io/pypi/v/snappass.svg
     :target: https://pypi.python.org/pypi/snappass
     :alt: Latest version released on PyPI
-
-.. |build| image:: https://travis-ci.org/pinterest/snappass.svg
-    :target: https://travis-ci.org/pinterest/snappass
-    :alt: Build status
 
 It's like SnapChat... for passwords.
 
@@ -51,7 +47,7 @@ Requirements
 ------------
 
 * `Redis`_
-* Python 2.7+ or 3.5+
+* Python 3.7+
 
 .. _Redis: https://redis.io/
 
@@ -97,6 +93,8 @@ need to change this.
 ``REDIS_URL``: (optional) will be used instead of ``REDIS_HOST``, ``REDIS_PORT``, and ``SNAPPASS_REDIS_DB`` to configure the Redis client object. For example: redis://username:password@localhost:6379/0
 
 ``REDIS_PREFIX``: (optional, defaults to ``"snappass"``) prefix used on redis keys to prevent collisions with other potential clients
+
+``HOST_OVERRIDE``: (optional) Used to override the base URL if the app is unaware. Useful when running behind reverse proxies like an identity-aware SSO. Example: ``sub.domain.com``
 
 Docker
 ------
