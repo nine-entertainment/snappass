@@ -1,39 +1,27 @@
-name: Docker
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+name: Build & Push to ghcr
 
 on:
   push:
     branches: [ master ]
-    # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
   pull_request:
     branches: [ master ]
 
 env:
-  # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
-
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-
+      actions: write  # This is needed for creating tagging/release actions
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Login against a Docker registry except on PR
-      # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
         if: github.event_name != 'pull_request'
         uses: docker/login-action@3d58c274f17dffee475a5520cbe67f0a882c4dbb
@@ -42,16 +30,12 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Extract metadata (tags, labels) for Docker
-      # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@dbef88086f6cef02e264edb7dbf63250c17cef6c
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
-      # Build and push Docker image with Buildx (don't push on PR)
-      # https://github.com/docker/build-push-action
       - name: Build and push Docker image
         uses: docker/build-push-action@9f6f8c940b91232557f8699b21341a08624a8dce
         with:
@@ -59,3 +43,44 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      
+      - name: Check out existing tags
+        run: git fetch --tags
+      
+      - name: Get latest tag
+        id: latest_tag
+        run: echo "LATEST_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+
+      - name: Create new tag and release
+        id: create_release
+        if: startsWith(env.LATEST_TAG, 'v')
+        run: |
+          latest_tag=${{ env.LATEST_TAG }}
+          major=${latest_tag:1:1} # Get the first character (major version)
+          minor=${latest_tag:3:1}  # Get the second character (minor version)
+          patch=${latest_tag:5:1}  # Get the third character (patch version)
+
+          # Check if minor is below 9 to increment it; if it is 9, reset it back to 0 and increment major
+          if [ "$minor" -lt 9 ]; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            # increment major and reset minor and patch back to 0
+            major=$((major + 1))
+            minor=0
+            patch=0
+          fi
+
+          # Create new tag v<major>.<minor>.<patch>
+          new_tag="v$major.$minor.$patch"
+          echo "New Tag: $new_tag"
+
+          # Create and push new tag
+          git tag "${new_tag}"
+          git push origin "${new_tag}"
+
+          # Create GitHub Release
+          gh release create "${new_tag}" --title "${new_tag}" --notes "Release of version ${new_tag}" || echo "gh CLI not installed"
+
+      - name: Output new tag
+        run: echo "New tag created: ${{ steps.create_release.outputs.new_tag }}"
