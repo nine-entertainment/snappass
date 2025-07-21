@@ -6,7 +6,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
       - name: Setup python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v5
         with:
           python-version: 3.8
       - name: Install pre-commit
@@ -26,7 +26,7 @@ jobs:
   #    - name: Install license finder
   #      run: gem install license_finder
   #    - name: Setup python 3.6
-  #      uses: actions/setup-python@v1
+  #      uses: actions/setup-python@v5
   #      with:
   #        python-version: 3.6
   #    - name: Install apt dependencies
@@ -44,7 +44,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v1
       - name: Setup python ${{ matrix.python-version }}
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install apt dependencies
