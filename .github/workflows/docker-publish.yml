@@ -87,5 +87,7 @@ jobs:
 
       - name: Create GitHub Release
         if: startsWith(env.LATEST_TAG, 'v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Set GH_TOKEN for `gh` CLI
         run: |
           gh release create "${{ env.NEW_TAG }}" --title "${{ env.NEW_TAG }}" --notes "Release of version ${{ env.NEW_TAG }}" || echo "gh CLI not installed"
