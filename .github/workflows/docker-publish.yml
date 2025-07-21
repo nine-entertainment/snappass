@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history including tags
 
       - name: Log into registry ${{ env.REGISTRY }}
         if: github.event_name != 'pull_request'
@@ -29,29 +31,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata
-        id: meta
-        uses: docker/metadata-action@dbef88086f6cef02e264edb7dbf63250c17cef6c
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@9f6f8c940b91232557f8699b21341a08624a8dce
-        with:
-          context: .
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
       - name: Check out existing tags
         run: git fetch --tags
 
       - name: Get latest tag
         id: latest_tag
-        run: echo "LATEST_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+        run: |
+          latest_tag=$(git describe --tags --abbrev=0)
+          echo "LATEST_TAG=${latest_tag}" >> $GITHUB_ENV
+          echo "Latest Tag: ${latest_tag}"
 
-      - name: Create new tag and release
-        id: create_release
+      - name: Create new tag 
+        id: create_tag
         if: startsWith(env.LATEST_TAG, 'v')
         run: |
           latest_tag=${{ env.LATEST_TAG }}
@@ -72,12 +63,29 @@ jobs:
           fi
 
           new_tag="v$major.$minor.$patch"
-          
-          echo "New Tag: $new_tag"
+          echo "New Docker tag: $new_tag"
 
           # Create and push new tag
           git tag "${new_tag}"
           git push origin "${new_tag}"
 
-          # Create GitHub Release - Adjust this if you want to use the gh CLI
-          gh release create "${new_tag}" --title "${new_tag}" --notes "Release of version ${new_tag}" || echo "gh CLI not installed"
+          echo "NEW_TAG=${new_tag}" >> $GITHUB_ENV
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@dbef88086f6cef02e264edb7dbf63250c17cef6c
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@9f6f8c940b91232557f8699b21341a08624a8dce
+        with:
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }},${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.NEW_TAG }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Create GitHub Release
+        if: startsWith(env.LATEST_TAG, 'v')
+        run: |
+          gh release create "${{ env.NEW_TAG }}" --title "${{ env.NEW_TAG }}" --notes "Release of version ${{ env.NEW_TAG }}" || echo "gh CLI not installed"
