@@ -78,7 +78,7 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@9f6f8c940b91232557f8699b21341a08624a8dce
+        uses: docker/build-push-action@9e436ba9f2d7bcd1d038c8e55d039d37896ddc5d
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
